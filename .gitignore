@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+venv/
+*.pyc
+db.sqlite3
+.env
+
 # Distribution / packaging
 .Python
 build/
@@ -216,3 +221,4 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+

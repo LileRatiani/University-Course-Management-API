@@ -7,6 +7,21 @@ from rest_framework.response import Response
 from .models import Course
 from .serializers import CourseSerializer
 from .permissions import IsProfessorOrReadOnly
+from .models import Assignment
+from .serializers import AssignmentSerializer
+
+# Generic View: List all assignments or create a new one
+class AssignmentListCreateView(generics.ListCreateAPIView):
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    # Reusing the permission so only professors can create assignments
+    permission_classes = [permissions.IsAuthenticated, IsProfessorOrReadOnly]
+
+# Generic View: Retrieve, Update, or Delete a specific assignment
+class AssignmentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Assignment.objects.all()
+    serializer_class = AssignmentSerializer
+    permission_classes = [permissions.IsAuthenticated, IsProfessorOrReadOnly]
 
 
 # Generic View: List and Create Courses

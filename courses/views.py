@@ -1,17 +1,14 @@
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import Course
-from .serializers import CourseSerializer
+from .models import Course, Assignment, Submission
 from .permissions import IsProfessorOrReadOnly
-from .models import Assignment
-from .serializers import AssignmentSerializer
 from rest_framework.exceptions import ValidationError
-from .models import Submission
-from .serializers import SubmissionSerializer, GradeSubmissionSerializer
+from .serializers import SubmissionSerializer, GradeSubmissionSerializer, CourseSerializer, AssignmentSerializer
+from django_filters.rest_framework import DjangoFilterBackend
 
 # Generic View: List all assignments or create a new one
 class AssignmentListCreateView(generics.ListCreateAPIView):
@@ -111,3 +108,24 @@ class GradeSubmissionView(generics.UpdateAPIView):
             raise ValidationError("Only the professor of this course can grade this submission.")
 
         serializer.save()
+
+
+class CourseListCreateView(generics.ListCreateAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticated, IsProfessorOrReadOnly]
+
+    # 1. Enable the filtering and search backends
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    # 2. Exact match filtering (e.g., /api/courses/?professor=2)
+    filterset_fields = ['professor']
+
+    # 3. Text search (e.g., /api/courses/?search=Python)
+    search_fields = ['title', 'description']
+
+    # 4. Sorting (e.g., /api/courses/?ordering=-created_at)
+    ordering_fields = ['created_at', 'title']
+
+    def perform_create(self, serializer):
+        serializer.save(professor=self.request.user)

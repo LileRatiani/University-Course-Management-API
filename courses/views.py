@@ -9,6 +9,9 @@ from .serializers import CourseSerializer
 from .permissions import IsProfessorOrReadOnly
 from .models import Assignment
 from .serializers import AssignmentSerializer
+from rest_framework.exceptions import ValidationError
+from .models import Submission
+from .serializers import SubmissionSerializer, GradeSubmissionSerializer
 
 # Generic View: List all assignments or create a new one
 class AssignmentListCreateView(generics.ListCreateAPIView):
@@ -66,3 +69,45 @@ class CourseEnrollAPIView(APIView):
         # If both checks pass, enroll the student
         course.students.add(request.user)
         return Response({"detail": f"Successfully enrolled in {course.title}!"}, status=status.HTTP_200_OK)
+
+
+# Generic View: Students list their submissions and create new ones
+class SubmissionListCreateView(generics.ListCreateAPIView):
+    serializer_class = SubmissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Students only see their own submissions
+        if user.role == 'student':
+            return Submission.objects.filter(student=user)
+        # Professors see all submissions for courses they teach
+        elif user.role == 'professor':
+            return Submission.objects.filter(assignment__course__professor=user)
+        return Submission.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if user.role != 'student':
+            raise ValidationError("Only students can submit assignments.")
+
+        assignment = serializer.validated_data['assignment']
+        if user not in assignment.course.students.all():
+            raise ValidationError("You cannot submit to a course you are not enrolled in.")
+
+        serializer.save(student=user)
+
+
+# Generic View: Professors grade a specific submission
+class GradeSubmissionView(generics.UpdateAPIView):
+    queryset = Submission.objects.all()
+    serializer_class = GradeSubmissionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_update(self, serializer):
+        submission = self.get_object()
+        # Only the professor who teaches the course can grade it
+        if self.request.user != submission.assignment.course.professor:
+            raise ValidationError("Only the professor of this course can grade this submission.")
+
+        serializer.save()

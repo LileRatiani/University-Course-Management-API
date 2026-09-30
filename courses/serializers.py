@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Assignment
+from .models import Course, Assignment, Submission
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
@@ -7,6 +7,17 @@ class AssignmentSerializer(serializers.ModelSerializer):
         model = Assignment
         fields = '__all__'
 
+class SubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Submission
+        fields = ['id', 'assignment', 'student', 'content', 'grade', 'submitted_at']
+        # Students cannot grade themselves, and the student ID will be auto-assigned
+        read_only_fields = ['student', 'grade', 'submitted_at']
+
+class GradeSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Submission
+        fields = ['grade']
 
 class CourseSerializer(serializers.ModelSerializer):
     # This will nest the assignment data inside the course JSON

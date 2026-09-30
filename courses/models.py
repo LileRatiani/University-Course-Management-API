@@ -32,3 +32,22 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.course.title}"
+
+
+class Submission(models.Model):
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='submissions',
+        limit_choices_to={'role': 'student'}
+    )
+    content = models.TextField(help_text="Text response or a link to the submitted file")
+    grade = models.CharField(max_length=10, blank=True, null=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('assignment', 'student')
+
+    def __str__(self):
+        return f"{self.student.username}'s submission for {self.assignment.title}"
